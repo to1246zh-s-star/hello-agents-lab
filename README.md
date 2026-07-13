@@ -1,27 +1,36 @@
-**# HelloAgents Lab — Hand-Built Agent Framework
+# HelloAgents Lab — Hands-On Notes on Building an Agent Framework from Scratch
 
-This repository contains a from-scratch reimplementation of the core building blocks of an LLM agent framework, done as a hands-on learning exercise while working through **Chapter 7 ("Building Your Own Agent Framework")** of a Chinese-language textbook on AI agent development. The goal was not to replace an existing framework, but to understand *why* agent frameworks are designed the way they are, by building the pieces independently before comparing them against the reference implementation ([HelloAgents](https://github.com/jjyaoao/HelloAgents)).
+This repository is a hands-on learning journal for a Chinese-language textbook on AI agent development ([HelloAgents](https://github.com/jjyaoao/HelloAgents)). Rather than just reading the reference implementation, each chapter here is reimplemented independently from scratch, then compared against the book's design — the goal is to understand *why* agent frameworks are built the way they are, not just to reuse someone else's code.
 
-All code in `mini_agents/` is written independently and does not import from the installed `hello_agents` package — it only borrows the same design vocabulary (Message / Config / Agent / Tool) to make the comparison meaningful.
+All code borrows the reference project's design vocabulary (Message / Config / Agent / Tool / Memory / RAG) to make the comparison meaningful, but nothing imports from the installed `hello_agents` package directly.
 
-## Why build this instead of just using a framework?
+## Repository structure
 
-Modern agent SDKs (Claude Agent SDK, OpenAI Agents SDK, LangGraph, etc.) intentionally keep their core loop minimal: give a model a system prompt, a set of tools, and a loop, and let it reason. Understanding *what that minimal loop actually needs* — message representation, config resolution, a common agent interface, a tool-calling protocol — is best learned by writing each piece once, deliberately, rather than only calling a packaged API.
+```
+hello-agents-lab/
+├── mini_agents/     # Chapter 7 — hand-built agent framework (paradigms, tools, tool-calling)
+└── mini_memory/     # Chapter 8 — hand-built memory system + RAG
+```
 
-## Project structure
+Each folder is self-contained and has its own runnable test scripts.
+
+---
+
+## Chapter 7 — `mini_agents/`: building an agent framework
+
+Explores what a minimal agent loop actually needs: message representation, config resolution, a common agent interface, and a tool-calling protocol.
 
 ```
 mini_agents/
-├── message.py              # Message data class (role-constrained, dict-serializable)
-├── config.py                # Config loaded from environment variables
-├── agent.py                  # Abstract Agent base class (Template Method pattern)
-├── my_llm.py                 # HelloAgentsLLM subclass demonstrating provider extension
+├── message.py                 # Message data class (role-constrained, dict-serializable)
+├── config.py                  # Config loaded from environment variables
+├── agent.py                   # Abstract Agent base class (Template Method pattern)
+├── my_llm.py                  # HelloAgentsLLM subclass demonstrating provider extension
 ├── simple_agent.py            # SimpleAgent: multi-turn chat, function calling, streaming
 ├── react_agent.py             # ReActAgent: Thought -> Action -> Observation loop
 ├── reflection_agent.py        # ReflectionAgent: generate -> critique -> refine loop
 ├── plan_and_solve_agent.py    # PlanAndSolveAgent: plan first, then execute step by step
 ├── tools.py                   # Tool base class, ToolParameter, ToolRegistry, FunctionTool
-├── calculator_tool.py         # Minimal calculator tool (eval-based, quick prototype)
 ├── my_calculator_tool.py      # Safer calculator using AST parsing instead of eval
 ├── my_advanced_search.py      # Mock multi-source search tool with fallback logic
 ├── tool_chain_manager.py      # ToolChain / ToolChainManager for fixed multi-step pipelines
@@ -29,34 +38,75 @@ mini_agents/
 └── test_*.py                  # One test script per component, runnable standalone
 ```
 
-## Core design ideas explored
+**Four agent paradigms, each solving a different problem:**
 
-- **Message** — a small dataclass with a `Literal`-constrained `role` field, so an invalid role is caught at write time rather than silently accepted, plus a `to_dict()` that matches the OpenAI-style `messages` schema.
-- **Config** — configuration resolved from environment variables in one place (`Config.from_env()`), instead of scattering defaults across the codebase.
-- **Agent** — an abstract base class enforcing a single `run()` entry point (Template Method pattern), with shared history management (`add_message` / `get_history` / `clear_history`) implemented once and inherited by every concrete agent.
-- **Four agent paradigms**, each solving a different problem:
-  - `SimpleAgent` — plain multi-turn chat; extended here with native OpenAI function calling, streaming, and dynamic tool management.
-  - `ReActAgent` — reasons step by step, deciding on the fly whether to call a tool, based on regex-parsed `Thought` / `Action` output.
-  - `ReflectionAgent` — no external tools; improves its own answer through repeated self-critique.
-  - `PlanAndSolveAgent` — plans all steps up front, then executes them in order, trading flexibility for lower token usage.
-- **Tool system** — a `Tool` ABC with `get_parameters()` (self-describing schema) and `run()`, a `ToolRegistry` supporting both class-based and function-based registration, a `ToolChain` for fixed-order multi-tool pipelines, and an `AsyncToolExecutor` demonstrating real parallel speedup (verified: ~2s for 3 tasks run in parallel vs. ~6s run serially).
-- **Safety note**: the calculator was deliberately reimplemented using AST parsing (`my_calculator_tool.py`) instead of `eval()`, to only permit a fixed whitelist of operators/functions rather than arbitrary code execution.
+| Paradigm | External tools? | Decision style | Best for |
+|---|---|---|---|
+| `SimpleAgent` | Optional (native function calling) | No step concept | Plain Q&A |
+| `ReActAgent` | Yes | Dynamic, step by step | Tasks needing lookup/computation |
+| `ReflectionAgent` | No (self-critique) | Fixed number of rounds | Iterative quality refinement |
+| `PlanAndSolveAgent` | Optional | Static, planned up front | Multi-step tasks with a clear structure |
 
-## Running the tests
-
-Each component has a standalone test script. Example:
+The calculator tool was deliberately reimplemented using AST parsing rather than `eval()`, to only permit a whitelist of operators/functions instead of arbitrary code execution. The async tool executor demonstrates a verified real speedup: ~2s for 3 tasks run in parallel vs. ~6s run serially.
 
 ```bash
-conda activate hello-agents
 cd mini_agents
-python test_message.py
 python test_react_agent.py
 python test_tool_chain_manager.py
 ```
 
-## Environment setup
+---
 
-Create a `.env` file (not committed — see `.gitignore`) with:
+## Chapter 8 — `mini_memory/`: memory system + RAG
+
+Explores the two things a stateless LLM fundamentally lacks: persistent memory across sessions, and access to knowledge outside its training data.
+
+```
+mini_memory/
+├── memory_item.py         # MemoryItem / MemoryConfig — the shared data structure
+├── working_memory.py      # In-memory + TTL expiry + capacity eviction
+├── episodic_memory.py     # SQLite + TF-IDF vector search
+├── semantic_memory.py     # networkx graph (stands in for Neo4j) + vector search
+├── perceptual_memory.py   # Modality-isolated vector stores (text/image/audio)
+├── test_scoring.py        # Standalone verification of the four scoring formulas
+├── memory_tool.py         # MemoryTool — unified execute(action, **kwargs) entry point
+├── rag_basic.py            # Real PDF loading (pypdf) + paragraph-aware chunking + retrieval
+├── rag_advanced.py         # Multi-Query Expansion (MQE) + HyDE
+└── pdf_assistant.py         # PDFLearningAssistant — combines MemoryTool + RAGTool
+```
+
+**Four memory types, each with a different storage design:**
+
+| Type | Storage | Retrieval weighting | Why |
+|---|---|---|---|
+| Working | Pure in-memory + TTL | keyword + vector, recency-weighted | Short-lived, needs to be fast, not durable |
+| Episodic | SQLite + vector | `vector×0.8 + recency×0.2` | Concrete timestamped events — recency matters |
+| Semantic | Graph (networkx) + vector | `vector×0.7 + graph×0.3` | Abstract knowledge — relationships matter more than freshness |
+| Perceptual | Modality-isolated vector stores | `vector×0.8 + recency×0.2` | Different modalities have incompatible vector dimensions |
+
+Every retrieval formula above was independently verified in `test_scoring.py` rather than just copied from the book — e.g. confirming that the graph-search weight in semantic memory (0.3) actually produces a higher score contribution than the recency weight in episodic memory (0.2), and that 2-hop graph traversal can surface a related memory that pure vector search misses entirely (zero literal overlap in the text).
+
+**RAG pipeline**: real PDF → `pypdf` text extraction → paragraph-aware sliding-window chunking (`chunk_size`/`chunk_overlap`, avoids cutting mid-sentence) → TF-IDF vector index (char n-grams, since Chinese has no word boundaries for whitespace tokenizers) → optional Multi-Query Expansion + HyDE for queries that don't literally overlap with the source text → LLM-generated answer with cited chunk sources.
+
+**`PDFLearningAssistant`** composes `MemoryTool` and `RAGTool` (not inheritance) into a per-user learning assistant: isolated SQLite file and RAG namespace per `user_id`, full Q&A history retained (not just printed to stdout), notes tagged by concept into semantic memory, and a JSON learning report on demand.
+
+```bash
+cd mini_memory
+python memory_tool.py
+python pdf_assistant.py   # point file_path at your own PDF first
+```
+
+---
+
+## Environment setup (shared across both chapters)
+
+Both chapters were developed and tested on an AutoDL cloud GPU instance, using ModelScope's free inference API (any OpenAI-compatible endpoint works).
+
+```bash
+pip install scikit-learn numpy python-dotenv openai networkx pypdf
+```
+
+Create a `.env` file (not committed — see `.gitignore`) in each chapter's working directory:
 
 ```
 LLM_API_KEY=your-api-key
@@ -64,9 +114,8 @@ LLM_BASE_URL=https://api-inference.modelscope.cn/v1/
 LLM_MODEL_ID=Qwen/Qwen3-VL-8B-Instruct
 ```
 
-Any OpenAI-compatible endpoint works; this project was developed and tested against ModelScope's free inference API.
-
 ## Notes
 
-- This is a learning artifact, not a production framework. Error handling, retries, and security hardening are present in places (e.g. AST-based calculator, exponential backoff for rate limits) but not applied uniformly everywhere.
-- The reference framework this project is modeled after is [HelloAgents](https://github.com/jjyaoao/HelloAgents), part of the *AI Agent 开发实践* textbook.**
+- This is a learning artifact, not a production framework. Real deployments would use Qdrant/Neo4j for the memory system's vector/graph storage and MarkItDown for PDF conversion; this repo intentionally substitutes zero-cost local equivalents (SQLite, TF-IDF, networkx, pypdf) so the core logic can be verified without any cloud service accounts.
+- Error handling, retries (exponential backoff on rate limits), and security hardening (AST-based calculator instead of `eval`) are present where they mattered most for the learning goal, not applied uniformly everywhere.
+- The reference framework this project is modeled after is [HelloAgents](https://github.com/jjyaoao/HelloAgents), part of the *AI Agent 开发实践* textbook.
