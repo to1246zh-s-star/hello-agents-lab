@@ -1,0 +1,112 @@
+{
+  "SFT": {
+    "accuracy": 0.2625,
+    "error_types": {
+      "计算错误": 8,
+      "推理错误": 35,
+      "理解错误": 0,
+      "格式错误": 16
+    },
+    "difficulty": {
+      "简单(1-2步)": [
+        0.5909090909090909,
+        22
+      ],
+      "中等(3-4步)": [
+        0.14634146341463414,
+        41
+      ],
+      "困难(5+步)": [
+        0.11764705882352941,
+        17
+      ]
+    },
+    "errors_sample": [
+      {
+        "question": "Josh decides to try flipping a house.  He buys a house for $80,000 and then puts",
+        "prediction": "79500",
+        "ground_truth": "70000",
+        "error_type": "推理错误"
+      },
+      {
+        "question": "Every day, Wendi feeds each of her chickens three cups of mixed chicken feed, co",
+        "prediction": "85",
+        "ground_truth": "20",
+        "error_type": "计算错误"
+      },
+      {
+        "question": "Kylar went to the store to buy glasses for his new apartment. One glass costs $5",
+        "prediction": null,
+        "ground_truth": "64",
+        "error_type": "格式错误"
+      },
+      {
+        "question": "Carla is downloading a 200 GB file. Normally she can download 2 GB/minute, but 4",
+        "prediction": null,
+        "ground_truth": "160",
+        "error_type": "格式错误"
+      },
+      {
+        "question": "John drives for 3 hours at a speed of 60 mph and then turns around because he re",
+        "prediction": "23522",
+        "ground_truth": "45",
+        "error_type": "推理错误"
+      }
+    ]
+  },
+  "GRPO": {
+    "accuracy": 0.2625,
+    "error_types": {
+      "计算错误": 8,
+      "推理错误": 36,
+      "理解错误": 0,
+      "格式错误": 15
+    },
+    "difficulty": {
+      "简单(1-2步)": [
+        0.5909090909090909,
+        22
+      ],
+      "中等(3-4步)": [
+        0.14634146341463414,
+        41
+      ],
+      "困难(5+步)": [
+        0.11764705882352941,
+        17
+      ]
+    },
+    "errors_sample": [
+      {
+        "question": "Josh decides to try flipping a house.  He buys a house for $80,000 and then puts",
+        "prediction": "79500",
+        "ground_truth": "70000",
+        "error_type": "推理错误"
+      },
+      {
+        "question": "Every day, Wendi feeds each of her chickens three cups of mixed chicken feed, co",
+        "prediction": "85",
+        "ground_truth": "20",
+        "error_type": "计算错误"
+      },
+      {
+        "question": "Kylar went to the store to buy glasses for his new apartment. One glass costs $5",
+        "prediction": null,
+        "ground_truth": "64",
+        "error_type": "格式错误"
+      },
+      {
+        "question": "Carla is downloading a 200 GB file. Normally she can download 2 GB/minute, but 4",
+        "prediction": null,
+        "ground_truth": "160",
+        "error_type": "格式错误"
+      },
+      {
+        "question": "John drives for 3 hours at a speed of 60 mph and then turns around because he re",
+        "prediction": "23522",
+        "ground_truth": "45",
+        "error_type": "推理错误"
+      }
+    ]
+  }
+}

@@ -9,3 +9,8 @@ __pycache__/
 *_workspace/
 fake_flask_app/
 maintainer_report_*.json
+
+# Chapter 11: RL模型权重和缓存,体积过大不推送
+mini_rl/models/
+mini_rl/models_cache/
+mini_rl/hf_cache/
