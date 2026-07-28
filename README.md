@@ -211,3 +211,15 @@ LLM_MODEL_ID=Qwen/Qwen3-VL-8B-Instruct
 - This is a learning artifact, not a production framework. Real deployments would use Qdrant/Neo4j for the memory system's vector/graph storage and MarkItDown for PDF conversion; chapters 7-9 intentionally substitute zero-cost local equivalents (SQLite, TF-IDF, networkx, pypdf) so the core logic can be verified without any cloud service accounts. Chapter 10 is the one exception to the "reimplement from scratch" approach, since MCP/A2A/ANP are only meaningful as shared, installed standards.
 - Error handling, retries (exponential backoff on rate limits), and security hardening (AST-based calculator instead of `eval`) are present where they mattered most for the learning goal, not applied uniformly everywhere.
 - The reference framework this project is modeled after is [HelloAgents](https://github.com/jjyaoao/HelloAgents), part of the *AI Agent 开发实践* textbook.
+
+## 第十二章 · 评估系统 (mini_eval)
+
+- `scripts/eval_bfcl.py` / `eval_bfcl_focus.py` — BFCL 工具调用评估（AST 匹配，四类别 + Wilson CI）
+- `scripts/eval_gaia.py` — GAIA 通用能力评估（准精确匹配，Level 1/2/3 + Drop Rate）
+- `scripts/gen_aime.py` — AIME 题目生成（自定义实现，库仅提供读取器 AIDataset）
+- `scripts/judge_sanity.py` — LLM Judge 毒丸可靠性测试
+- `scripts/eval_judge_winrate.py` — LLM Judge 4维度打分 + Win Rate 成对比较
+
+环境：conda env `hello-eval`（与训练环境隔离，numpy==1.26.4）；LLM 走 ModelScope Qwen3-VL-8B-Instruct。
+注意：SimpleAgent 未绑定工具，GAIA 分数反映的是无检索条件下的裸模型能力，非典型 Agent 系统表现。
+本次 AIME 生成因 ModelScope 每日配额耗尽（429）中断，待配额恢复后续跑。

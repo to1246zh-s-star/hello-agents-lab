@@ -14,3 +14,9 @@ maintainer_report_*.json
 mini_rl/models/
 mini_rl/models_cache/
 mini_rl/hf_cache/
+
+# 第十二章：评估相关的大文件/敏感文件排除
+temp_gorilla/
+data/gaia/
+.env
+*.tar.gz
